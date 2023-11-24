@@ -188,6 +188,7 @@ const getUsers = async (
   const fetched_users: Auth0User[] = missing_ids.length
     ? await getAuth0Users(ctx, missing_ids)
     : [];
+
   if (fetched_users.length) {
     await setUsers(ctx, fetched_users);
   }
@@ -198,8 +199,8 @@ const getUsers = async (
 
   // return mock versions of missing users into cache, to prevent
   // spamming auth0 for users that never existed or were deleted
-  const still_missing_ids = missing_ids.filter((id) =>
-    fetched_users.some((u) => u.user_id === id),
+  const still_missing_ids = missing_ids.filter(
+    (id) => !fetched_users.some((u) => u.user_id === id),
   );
 
   const mock_users: Auth0User[] = [];

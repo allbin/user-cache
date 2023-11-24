@@ -76,14 +76,14 @@ interface UserCacheOptions extends UserCacheOptionsWithOptionals {
 }
 
 export interface IUserCache {
-  init: () => Promise<void>;
   setUsers: (users: Auth0User[]) => Promise<void>;
   getUsers: (ids: string[]) => Promise<Auth0User[]>;
-  end: () => Promise<void>;
+  disconnect: () => Promise<void>;
 }
 
 interface IUserCacheContext {
   options: UserCacheOptions;
+  isConnected: boolean;
   redis: RedisClientType<
     { json: typeof redis_json_module },
     RedisFunctions,
@@ -145,10 +145,19 @@ const getAuth0Users = async (
 const userExists = (user: Auth0User | null): user is Auth0User =>
   !!user?.user_id;
 
+const ensureConnected = async (ctx: IUserCacheContext): Promise<void> => {
+  if (!ctx.isConnected) {
+    await ctx.redis.connect();
+    ctx.isConnected = true;
+  }
+};
+
 const setUsers = async (
   ctx: IUserCacheContext,
   users: Auth0User[],
 ): Promise<void> => {
+  await ensureConnected(ctx);
+
   const multi = ctx.redis.multi();
   users.forEach((user) => {
     multi.json
@@ -162,6 +171,8 @@ const getUsers = async (
   ctx: IUserCacheContext,
   ids: string[],
 ): Promise<Auth0User[]> => {
+  await ensureConnected(ctx);
+
   const cached_users: Auth0User[] = (
     await Promise.all(
       ids.map(
@@ -211,6 +222,7 @@ export default (opts: UserCacheOptionsWithOptionals): IUserCache => {
 
   const ctx: IUserCacheContext = {
     options,
+    isConnected: false,
     redis: createClient({
       url: options.redis.url || 'redis://localhost',
       modules: { json: redis_json_module },
@@ -220,11 +232,12 @@ export default (opts: UserCacheOptionsWithOptionals): IUserCache => {
   };
 
   return {
-    init: async () => {
-      await ctx.redis.connect();
-    },
     setUsers: async (users) => await setUsers(ctx, users),
     getUsers: async (ids) => await getUsers(ctx, ids),
-    end: async () => await ctx.redis.disconnect(),
+    disconnect: async () => {
+      if (ctx.isConnected) {
+        await ctx.redis.disconnect();
+      }
+    },
   };
 };

@@ -1,5 +1,5 @@
 {
-  "name": "user-cache",
+  "name": "@allbin/user-cache",
   "version": "0.0.1",
   "description": "Auth0 redis user cache",
   "main": "lib/index.js",

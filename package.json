@@ -1,6 +1,6 @@
 {
   "name": "@allbin/user-cache",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Auth0 redis user cache",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",

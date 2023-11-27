@@ -78,6 +78,7 @@ interface UserCacheOptions extends UserCacheOptionsWithOptionals {
 export interface IUserCache {
   setUsers: (users: Auth0User[]) => Promise<void>;
   getUsers: (ids: string[]) => Promise<Auth0User[]>;
+  searchUsers: (q: string) => Promise<Auth0User[]>;
   disconnect: () => Promise<void>;
 }
 
@@ -215,6 +216,26 @@ const getUsers = async (
   return [...cached_users, ...fetched_users, ...mock_users];
 };
 
+const searchUsers = async (
+  ctx: IUserCacheContext,
+  q: string,
+): Promise<Auth0User[]> => {
+  const { domain } = ctx.options.auth0;
+  const users = await axios
+    .get<Auth0User[]>(`https://${domain}/api/v2/users`, {
+      headers: {
+        authorization: `Bearer ${await getToken(ctx)}`,
+      },
+      params: {
+        q: `email:/${q}/`,
+      },
+    })
+    .then((r) => r.data);
+
+  await setUsers(ctx, users);
+  return users;
+};
+
 export default (opts: UserCacheOptionsWithOptionals): IUserCache => {
   const options: UserCacheOptions = {
     ...opts,
@@ -235,6 +256,7 @@ export default (opts: UserCacheOptionsWithOptionals): IUserCache => {
   return {
     setUsers: async (users) => await setUsers(ctx, users),
     getUsers: async (ids) => await getUsers(ctx, ids),
+    searchUsers: async (q) => await searchUsers(ctx, q),
     disconnect: async () => {
       if (ctx.isConnected) {
         await ctx.redis.disconnect();

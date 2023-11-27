@@ -168,19 +168,27 @@ const setUsers = async (
   await multi.exec();
 };
 
+interface GetUsersOptions {
+  force_fetch?: boolean;
+}
+
 const getUsers = async (
   ctx: IUserCacheContext,
   ids: string[],
+  opts?: GetUsersOptions,
 ): Promise<Auth0User[]> => {
   await ensureConnected(ctx);
 
-  const cached_users: Auth0User[] = (
-    await Promise.all(
-      ids.map(
-        (id) => ctx.redis.json.get(`user:${id}`) as unknown as Auth0User | null,
-      ),
-    )
-  ).filter(userExists);
+  const cached_users: Auth0User[] = opts?.force_fetch
+    ? []
+    : (
+        await Promise.all(
+          ids.map(
+            (id) =>
+              ctx.redis.json.get(`user:${id}`) as unknown as Auth0User | null,
+          ),
+        )
+      ).filter(userExists);
 
   const missing_ids = ids.filter(
     (id) => !cached_users.some((u) => u.user_id === id),

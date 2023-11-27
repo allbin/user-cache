@@ -77,7 +77,7 @@ interface UserCacheOptions extends UserCacheOptionsWithOptionals {
 
 export interface IUserCache {
   setUsers: (users: Auth0User[]) => Promise<void>;
-  getUsers: (ids: string[]) => Promise<Auth0User[]>;
+  getUsers: (ids: string[], opts?: GetUsersOptions) => Promise<Auth0User[]>;
   searchUsers: (q: string) => Promise<Auth0User[]>;
   disconnect: () => Promise<void>;
 }
@@ -263,7 +263,7 @@ export default (opts: UserCacheOptionsWithOptionals): IUserCache => {
 
   return {
     setUsers: async (users) => await setUsers(ctx, users),
-    getUsers: async (ids) => await getUsers(ctx, ids),
+    getUsers: async (ids, opts) => await getUsers(ctx, ids, opts),
     searchUsers: async (q) => await searchUsers(ctx, q),
     disconnect: async () => {
       if (ctx.isConnected) {
